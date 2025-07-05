@@ -1,0 +1,272 @@
+{
+  "compatibilityLevel": 1567,
+  "model": {
+    "annotations": [
+      {
+        "name": "PBI_QueryOrder",
+        "value": "[\"Sales\",\"Products\",\"Customers\"]"
+      }
+    ],
+    "culture": "en-US",
+    "cultures": [
+      {
+        "name": "en-US",
+        "linguisticMetadata": {
+          "content": {
+            "Language": "en-US",
+            "Version": "1.0.0"
+          },
+          "contentType": "json"
+        }
+      }
+    ],
+    "dataAccessOptions": {
+      "defaultMode": "directQuery",
+      "defaultPowerBIDataSourceVersion": "powerBI_V3"
+    },
+    "expressions": [
+      {
+        "name": "Total Sales",
+        "kind": "m",
+        "expression": "let\n    Source = Sales,\n    TotalSales = Table.AddColumn(Source, \"Total\", each [Quantity] * [Price])\nin\n    TotalSales"
+      }
+    ],
+    "queryGroups": [
+      {
+        "annotations": [
+          {
+            "name": "PBI_ResultType",
+            "value": "Table"
+          }
+        ],
+        "folder": "Sales Analysis"
+      }
+    ],
+    "relationships": [
+      {
+        "name": "Sales-Products",
+        "fromTable": "Sales",
+        "fromColumn": "ProductID",
+        "toTable": "Products",
+        "toColumn": "ID",
+        "crossFilteringBehavior": "bothDirections",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "name": "Sales-Customers",
+        "fromTable": "Sales",
+        "fromColumn": "CustomerID",
+        "toTable": "Customers",
+        "toColumn": "ID",
+        "crossFilteringBehavior": "oneDirection",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      }
+    ],
+    "roles": [
+      {
+        "name": "Sales Manager",
+        "description": "Can view all sales data",
+        "members": [
+          {
+            "memberName": "DOMAIN\\SalesManager",
+            "memberType": "User"
+          }
+        ],
+        "tablePermissions": [
+          {
+            "name": "Sales",
+            "filterExpression": "[Region] = \"North\""
+          }
+        ]
+      }
+    ],
+    "sourceQueryCulture": "en-US",
+    "tables": [
+      {
+        "name": "Sales",
+        "columns": [
+          {
+            "name": "ID",
+            "dataType": "int64",
+            "isHidden": false,
+            "isKey": true,
+            "sourceColumn": "ID"
+          },
+          {
+            "name": "ProductID",
+            "dataType": "int64",
+            "isHidden": false,
+            "isKey": false,
+            "sourceColumn": "ProductID"
+          },
+          {
+            "name": "CustomerID",
+            "dataType": "int64",
+            "isHidden": false,
+            "isKey": false,
+            "sourceColumn": "CustomerID"
+          },
+          {
+            "name": "Quantity",
+            "dataType": "int64",
+            "isHidden": false,
+            "isKey": false,
+            "sourceColumn": "Quantity"
+          },
+          {
+            "name": "Price",
+            "dataType": "decimal",
+            "isHidden": false,
+            "isKey": false,
+            "sourceColumn": "Price"
+          },
+          {
+            "name": "SaleDate",
+            "dataType": "dateTime",
+            "isHidden": false,
+            "isKey": false,
+            "sourceColumn": "SaleDate"
+          }
+        ],
+        "measures": [
+          {
+            "name": "Total Revenue",
+            "expression": "SUM(Sales[Quantity] * Sales[Price])",
+            "isHidden": false,
+            "formatString": "\"$\"#,0.00"
+          },
+          {
+            "name": "Average Sale",
+            "expression": "AVERAGE(Sales[Quantity] * Sales[Price])",
+            "isHidden": false,
+            "formatString": "\"$\"#,0.00"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Sales",
+            "mode": "directQuery",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Sql.Database(\"server\", \"database\")\nin\n    Source"
+            }
+          }
+        ],
+        "hierarchies": []
+      },
+      {
+        "name": "Products",
+        "columns": [
+          {
+            "name": "ID",
+            "dataType": "int64",
+            "isHidden": false,
+            "isKey": true,
+            "sourceColumn": "ID"
+          },
+          {
+            "name": "ProductName",
+            "dataType": "string",
+            "isHidden": false,
+            "isKey": false,
+            "sourceColumn": "ProductName"
+          },
+          {
+            "name": "Category",
+            "dataType": "string",
+            "isHidden": false,
+            "isKey": false,
+            "sourceColumn": "Category"
+          },
+          {
+            "name": "Price",
+            "dataType": "decimal",
+            "isHidden": false,
+            "isKey": false,
+            "sourceColumn": "Price"
+          }
+        ],
+        "measures": [],
+        "partitions": [
+          {
+            "name": "Products",
+            "mode": "directQuery",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Sql.Database(\"server\", \"database\")\nin\n    Source"
+            }
+          }
+        ],
+        "hierarchies": [
+          {
+            "name": "Product Hierarchy",
+            "levels": [
+              {
+                "name": "Category",
+                "column": "Category"
+              },
+              {
+                "name": "Product",
+                "column": "ProductName"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Customers",
+        "columns": [
+          {
+            "name": "ID",
+            "dataType": "int64",
+            "isHidden": false,
+            "isKey": true,
+            "sourceColumn": "ID"
+          },
+          {
+            "name": "CustomerName",
+            "dataType": "string",
+            "isHidden": false,
+            "isKey": false,
+            "sourceColumn": "CustomerName"
+          },
+          {
+            "name": "Region",
+            "dataType": "string",
+            "isHidden": false,
+            "isKey": false,
+            "sourceColumn": "Region"
+          },
+          {
+            "name": "Country",
+            "dataType": "string",
+            "isHidden": false,
+            "isKey": false,
+            "sourceColumn": "Country"
+          }
+        ],
+        "measures": [
+          {
+            "name": "Customer Count",
+            "expression": "DISTINCTCOUNT(Customers[ID])",
+            "isHidden": false,
+            "formatString": "#,0"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Customers",
+            "mode": "directQuery",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Sql.Database(\"server\", \"database\")\nin\n    Source"
+            }
+          }
+        ],
+        "hierarchies": []
+      }
+    ]
+  }
+}

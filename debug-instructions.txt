@@ -1,0 +1,71 @@
+DEBUGGING INSTRUCTIONS FOR POWER BI MODEL ANALYZER
+==================================================
+
+The application is now running with detailed logging. Follow these steps to identify the issue:
+
+STEP 1: Access the Application
+------------------------------
+1. Open your web browser (Chrome, Firefox, Edge)
+2. Navigate to: http://localhost:3000
+3. You should see the Power BI Model Analyzer interface
+
+STEP 2: Open Developer Tools
+----------------------------
+1. Press F12 or right-click and select "Inspect Element"
+2. Go to the "Console" tab
+3. Keep this open to see JavaScript logs
+
+STEP 3: Test File Upload
+------------------------
+1. Click "browse files" or drag the sample-model.json file
+2. Watch both:
+   - Browser Console (F12 -> Console tab) for frontend logs
+   - Backend Terminal for server logs
+
+STEP 4: Check Backend Logs
+--------------------------
+Look at the terminal running the backend server for messages like:
+- [UPLOAD] Received file: ...
+- [UPLOAD] File size: ...
+- [UPLOAD] Generated analysis ID: ...
+- [ANALYZE] Requested analysis ID: ...
+
+STEP 5: Check Frontend Logs
+---------------------------
+Look at the browser console for messages like:
+- Starting file upload...
+- Sending request to: http://localhost:8000/upload
+- Upload response status: ...
+- Loading analysis results for ID: ...
+
+COMMON ISSUES TO CHECK:
+======================
+
+1. CORS Error:
+   - Look for "CORS" in browser console
+   - Backend should show CORS middleware is enabled
+
+2. Connection Error:
+   - Look for "Failed to fetch" in browser console
+   - Check if backend is running on port 8000
+
+3. File Format Error:
+   - Backend will show "[UPLOAD] Error: Invalid file type"
+   - Make sure you're uploading a .json file
+
+4. Analysis Error:
+   - Backend will show detailed error with traceback
+   - Frontend will show specific error message
+
+CURRENT SERVER STATUS:
+=====================
+- Backend API: http://localhost:8000 (should be running)
+- Frontend: http://localhost:3000 (should be running)
+- Sample file: sample-model.json (ready for testing)
+
+If you see any errors, please share:
+1. The exact error message from browser console
+2. The backend terminal output
+3. What step you were on when the error occurred
+
+This will help identify the exact issue!

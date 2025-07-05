@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Power BI Model Analyzer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Power BI Model Analyzer</h1>
+            <p>Upload your Power BI model.json file to analyze its structure and components</p>
+        </header>
+
+        <main>
+            <!-- Upload Section -->
+            <section id="upload-section" class="section">
+                <div class="upload-area" id="upload-area">
+                    <div class="upload-content">
+                        <div class="upload-icon">📁</div>
+                        <h3>Drop your model.json file here</h3>
+                        <p>or <button type="button" id="browse-btn" class="browse-btn">browse files</button></p>
+                        <input type="file" id="file-input" accept=".json" style="display: none;">
+                        <div class="file-requirements">
+                            <small>Supported: JSON files up to 50MB</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="upload-progress" class="upload-progress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <p id="progress-text">Uploading and analyzing...</p>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section id="results-section" class="section" style="display: none;">
+                <div class="results-header">
+                    <h2>Analysis Results</h2>
+                    <button id="new-analysis-btn" class="btn btn-secondary">Analyze New File</button>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="summary-grid" id="summary-grid">
+                    <!-- Summary cards will be populated by JavaScript -->
+                </div>
+
+                <!-- Detailed Results -->
+                <div class="results-tabs">
+                    <div class="tab-buttons">
+                        <button class="tab-btn active" data-tab="overview">Overview</button>
+                        <button class="tab-btn" data-tab="tables">Tables</button>
+                        <button class="tab-btn" data-tab="relationships">Relationships</button>
+                        <button class="tab-btn" data-tab="expressions">Expressions</button>
+                        <button class="tab-btn" data-tab="roles">Roles</button>
+                        <button class="tab-btn" data-tab="raw">Raw Data</button>
+                    </div>
+
+                    <div class="tab-content">
+                        <div id="overview-tab" class="tab-panel active">
+                            <div id="overview-content"></div>
+                        </div>
+                        
+                        <div id="tables-tab" class="tab-panel">
+                            <div id="tables-content"></div>
+                        </div>
+                        
+                        <div id="relationships-tab" class="tab-panel">
+                            <div id="relationships-content"></div>
+                        </div>
+                        
+                        <div id="expressions-tab" class="tab-panel">
+                            <div id="expressions-content"></div>
+                        </div>
+                        
+                        <div id="roles-tab" class="tab-panel">
+                            <div id="roles-content"></div>
+                        </div>
+                        
+                        <div id="raw-tab" class="tab-panel">
+                            <div id="raw-content"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Error Section -->
+            <section id="error-section" class="section error-section" style="display: none;">
+                <div class="error-content">
+                    <div class="error-icon">⚠️</div>
+                    <h3>Analysis Error</h3>
+                    <p id="error-message"></p>
+                    <button id="retry-btn" class="btn btn-primary">Try Again</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
