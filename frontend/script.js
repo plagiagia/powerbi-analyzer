@@ -167,6 +167,7 @@ function displayResults() {
     // Display detailed content for each tab
     displayOverviewTab();
     displayTablesTab();
+    displayMeasuresTab();
     displayRelationshipsTab(); // Will use default grouping
     displayExpressionsTab();
     displayRolesTab();
@@ -179,6 +180,15 @@ function displayResults() {
         groupingSelect.onchange = function () {
             displayRelationshipsTab(this.value);
         };
+    }
+
+    // Set up measures search input event (only once)
+    const measuresSearchInput = document.getElementById('measures-search-input');
+    if (measuresSearchInput && !measuresSearchInput._listenerSet) {
+        measuresSearchInput.addEventListener('input', function(e) {
+            displayMeasuresTab(e.target.value);
+        });
+        measuresSearchInput._listenerSet = true;
     }
 }
 
@@ -376,6 +386,115 @@ function displayTablesTab(filter = "") {
     tablesContent.innerHTML = html;
 }
 
+
+/**
+ * Display all measures from all tables in a searchable, expandable list.
+ */
+function displayMeasuresTab(filter = "") {
+    const tables = currentAnalysisData.model_info.tables || [];
+    const measuresContent = document.getElementById('measures-content');
+    // If no filter provided, use the current value in the input
+    let searchTerm = filter;
+    if (typeof searchTerm !== "string") searchTerm = "";
+    searchTerm = searchTerm.trim().toLowerCase();
+
+    // Aggregate all measures with table info
+    let allMeasures = [];
+    tables.forEach(table => {
+        if (Array.isArray(table.measures)) {
+            table.measures.forEach(measure => {
+                allMeasures.push({
+                    ...measure,
+                    table: table.name || "Unknown"
+                });
+            });
+        }
+    });
+
+    // Filtering logic: similar to tables tab
+    let filteredMeasures = allMeasures.map((m, idx) => {
+        // Normalize expression to string for search/filter/highlight
+        let exprStr = "";
+        if (Array.isArray(m.expression)) {
+            exprStr = m.expression.join("\n");
+        } else if (typeof m.expression === "string") {
+            exprStr = m.expression;
+        } else if (m.expression !== undefined && m.expression !== null) {
+            exprStr = String(m.expression);
+        }
+        const nameMatch = m.name && m.name.toLowerCase().includes(searchTerm);
+        const tableMatch = m.table && m.table.toLowerCase().includes(searchTerm);
+        const exprMatch = exprStr.toLowerCase().includes(searchTerm);
+        if (searchTerm === "" || nameMatch || tableMatch || exprMatch) {
+            return { ...m, idx, _exprStr: exprStr };
+        }
+        return null;
+    }).filter(Boolean);
+
+    if (filteredMeasures.length === 0) {
+        measuresContent.innerHTML = '<p>No measures found matching your search.</p>';
+        return;
+    }
+
+    let html = `<h3>Measures Overview (${filteredMeasures.length} shown${searchTerm ? " - filtered" : ""})</h3>`;
+    html += `<table class="data-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Table</th>
+                <th>Hidden</th>
+                <th>DAX Expression</th>
+            </tr>
+        </thead>
+        <tbody>
+    `;
+
+    filteredMeasures.forEach((m) => {
+        // Use normalized expression string for display
+        const expr = m._exprStr || "";
+        const truncated = expr.length > 100 ? expr.substring(0, 100) + "..." : expr;
+        const isExpandable = expr.length > 100;
+        const exprId = `measure-expr-${m.idx}`;
+        html += `
+            <tr>
+                <td>${highlightMatch(m.name, searchTerm)}</td>
+                <td>${highlightMatch(m.table, searchTerm)}</td>
+                <td>${m.isHidden ? 'Yes' : 'No'}</td>
+                <td>
+                    <div class="measure-expression">
+                        <code id="${exprId}-short">${highlightMatch(truncated, searchTerm)}</code>
+                        ${isExpandable ? `<a href="#" class="expand-link" data-expr-id="${exprId}">Show more</a>` : ""}
+                        <code id="${exprId}-full" style="display:none;">${highlightMatch(expr, searchTerm)}</code>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += `</tbody></table>`;
+    measuresContent.innerHTML = html;
+
+    // Add expand/collapse event listeners
+    const expandLinks = measuresContent.querySelectorAll('.expand-link');
+    expandLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const exprId = this.getAttribute('data-expr-id');
+            const shortCode = document.getElementById(exprId + "-short");
+            const fullCode = document.getElementById(exprId + "-full");
+            if (shortCode.style.display !== "none") {
+                shortCode.style.display = "none";
+                fullCode.style.display = "inline";
+                this.textContent = "Show less";
+            } else {
+                shortCode.style.display = "inline";
+                fullCode.style.display = "none";
+                this.textContent = "Show more";
+            }
+        });
+    });
+}
+
 // Add search event listener for tables search input
 document.addEventListener('DOMContentLoaded', function() {
     const tablesSearchInput = document.getElementById('tables-search-input');
@@ -559,6 +678,12 @@ function switchTab(tabName) {
         panel.classList.remove('active');
     });
     document.getElementById(`${tabName}-tab`).classList.add('active');
+
+    // If switching to measures tab, refresh its content (preserve search)
+    if (tabName === "measures") {
+        const measuresSearchInput = document.getElementById('measures-search-input');
+        displayMeasuresTab(measuresSearchInput ? measuresSearchInput.value : "");
+    }
 }
 
 function toggleExpandable(id) {
