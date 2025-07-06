@@ -201,6 +201,23 @@ function displayOverviewTab() {
     const modelInfo = currentAnalysisData.model_info;
     const summary = currentAnalysisData.summary;
     
+    // Extract Power BI Desktop version and Time Intelligence status from annotations
+    let pbiDesktopVersion = 'N/A';
+    let timeIntelligenceEnabled = 'N/A';
+    
+    if (modelInfo.annotations && Array.isArray(modelInfo.annotations)) {
+        const versionAnnotation = modelInfo.annotations.find(ann => ann.name === 'PBIDesktopVersion');
+        const timeIntellAnnotation = modelInfo.annotations.find(ann => ann.name === '__PBI_TimeIntelligenceEnabled');
+        
+        if (versionAnnotation) {
+            pbiDesktopVersion = versionAnnotation.value;
+        }
+        
+        if (timeIntellAnnotation) {
+            timeIntelligenceEnabled = timeIntellAnnotation.value === '1' ? 'Enabled' : 'Disabled';
+        }
+    }
+    
     const overviewContent = document.getElementById('overview-content');
     overviewContent.innerHTML = `
         <div class="info-grid">
@@ -211,10 +228,18 @@ function displayOverviewTab() {
                 <p>Compatibility Level: <span class="value">${currentAnalysisData.compatibility_level || 'N/A'}</span></p>
             </div>
             <div class="info-card">
-                <h4>Model Settings</h4>
+                <h4>Power BI Environment</h4>
+                <p>Desktop Version: <span class="value">${pbiDesktopVersion}</span></p>
+                <p>Time Intelligence: <span class="value">${timeIntelligenceEnabled}</span></p>
                 <p>Culture: <span class="value">${modelInfo.culture || 'N/A'}</span></p>
                 <p>Source Query Culture: <span class="value">${modelInfo.sourceQueryCulture || 'N/A'}</span></p>
+            </div>
+            <div class="info-card">
+                <h4>Model Settings</h4>
                 <p>Data Access Mode: <span class="value">${modelInfo.dataAccessOptions?.defaultMode || 'N/A'}</span></p>
+                <p>Query Groups: <span class="value">${summary.query_groups_count || 0}</span></p>
+                <p>Annotations: <span class="value">${summary.annotations_count || 0}</span></p>
+                <p>Cultures: <span class="value">${summary.cultures_count || 0}</span></p>
             </div>
             <div class="info-card">
                 <h4>Model Components</h4>
@@ -222,12 +247,6 @@ function displayOverviewTab() {
                 <p>Relationships: <span class="value">${summary.relationships_count || 0}</span></p>
                 <p>Expressions: <span class="value">${summary.expressions_count || 0}</span></p>
                 <p>Security Roles: <span class="value">${summary.roles_count || 0}</span></p>
-            </div>
-            <div class="info-card">
-                <h4>Additional Components</h4>
-                <p>Query Groups: <span class="value">${summary.query_groups_count || 0}</span></p>
-                <p>Annotations: <span class="value">${summary.annotations_count || 0}</span></p>
-                <p>Cultures: <span class="value">${summary.cultures_count || 0}</span></p>
             </div>
         </div>
     `;
