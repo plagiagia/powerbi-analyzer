@@ -71,9 +71,16 @@
     <div id="tables-content"></div>
 </div>
                         
-                        <div id="relationships-tab" class="tab-panel">
-                            <div id="relationships-content"></div>
-                        </div>
+<div id="relationships-tab" class="tab-panel">
+    <div class="relationship-grouping-bar" style="margin-bottom: 16px;">
+        <label for="relationship-grouping-select" style="font-weight: 500; margin-right: 8px;">Group by:</label>
+        <select id="relationship-grouping-select" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #ccc;">
+            <option value="fromTable">From Table</option>
+            <option value="toTable">To Table</option>
+        </select>
+    </div>
+    <div id="relationships-content"></div>
+</div>
                         
                         <div id="expressions-tab" class="tab-panel">
                             <div id="expressions-content"></div>

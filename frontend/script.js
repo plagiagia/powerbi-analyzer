@@ -167,10 +167,19 @@ function displayResults() {
     // Display detailed content for each tab
     displayOverviewTab();
     displayTablesTab();
-    displayRelationshipsTab();
+    displayRelationshipsTab(); // Will use default grouping
     displayExpressionsTab();
     displayRolesTab();
     displayRawTab();
+
+    // Set up relationships grouping selector event
+    const groupingSelect = document.getElementById('relationship-grouping-select');
+    if (groupingSelect) {
+        groupingSelect.value = "fromTable";
+        groupingSelect.onchange = function () {
+            displayRelationshipsTab(this.value);
+        };
+    }
 }
 
 function displaySummaryCards() {
@@ -377,51 +386,63 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-function displayRelationshipsTab() {
+function displayRelationshipsTab(groupBy = "fromTable") {
     const relationships = currentAnalysisData.model_info.relationships || [];
     const relationshipsContent = document.getElementById('relationships-content');
-    
+
     if (relationships.length === 0) {
         relationshipsContent.innerHTML = '<p>No relationships found in the model.</p>';
         return;
     }
-    
-    let html = `
-        <h3>Relationships Overview (${relationships.length} total)</h3>
-        <div class="table-container">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>From</th>
-                        <th>To</th>
-                        <th>Cardinality</th>
-                        <th>Active</th>
-                        <th>Cross Filtering</th>
-                    </tr>
-                </thead>
-                <tbody>
-    `;
-    
+
+    // Group relationships by selected property
+    const grouped = {};
     relationships.forEach(rel => {
+        const key = groupBy === "toTable" ? rel.toTable : rel.fromTable;
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(rel);
+    });
+
+    let html = `<h3>Relationships Overview (${relationships.length} total, grouped by ${groupBy === "toTable" ? "To Table" : "From Table"})</h3>`;
+
+    Object.keys(grouped).sort().forEach(tableName => {
         html += `
-            <tr>
-                <td>${rel.name}</td>
-                <td>${rel.fromTable}.${rel.fromColumn}</td>
-                <td>${rel.toTable}.${rel.toColumn}</td>
-                <td>${rel.cardinality}</td>
-                <td>${rel.isActive ? 'Yes' : 'No'}</td>
-                <td>${rel.crossFilteringBehavior}</td>
-            </tr>
+            <div class="relationship-section">
+                <h4 class="relationship-table-header">${tableName}</h4>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>From</th>
+                                <th>To</th>
+                                <th>Cardinality</th>
+                                <th>Active</th>
+                                <th>Cross Filtering</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+        `;
+        grouped[tableName].forEach(rel => {
+            html += `
+                <tr>
+                    <td>${rel.name}</td>
+                    <td>${rel.fromTable}.${rel.fromColumn}</td>
+                    <td>${rel.toTable}.${rel.toColumn}</td>
+                    <td>${rel.cardinality}</td>
+                    <td>${rel.isActive ? 'Yes' : 'No'}</td>
+                    <td>${rel.crossFilteringBehavior}</td>
+                </tr>
+            `;
+        });
+        html += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         `;
     });
-    
-    html += `
-                </tbody>
-            </table>
-        </div>
-    `;
-    
+
     relationshipsContent.innerHTML = html;
 }
 
