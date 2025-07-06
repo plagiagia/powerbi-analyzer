@@ -253,22 +253,53 @@ function displayOverviewTab() {
     `;
 }
 
-function displayTablesTab() {
+function highlightMatch(text, searchTerm) {
+    if (!searchTerm) return text;
+    const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return text.replace(regex, '<span class="highlight">$1</span>');
+}
+
+function displayTablesTab(filter = "") {
     const tables = currentAnalysisData.model_info.tables || [];
     const tablesContent = document.getElementById('tables-content');
-    
-    if (tables.length === 0) {
-        tablesContent.innerHTML = '<p>No tables found in the model.</p>';
+    const searchTerm = filter.trim().toLowerCase();
+
+    // Filter tables and columns
+    let filteredTables = tables.map((table, index) => {
+        // Check if table name matches
+        const tableNameMatch = table.name.toLowerCase().includes(searchTerm);
+        // Filter columns by name
+        let filteredColumns = [];
+        if (table.columns && table.columns.length > 0) {
+            filteredColumns = table.columns.filter(col =>
+                col.name.toLowerCase().includes(searchTerm)
+            );
+        }
+        // If table name matches or any column matches, include the table
+        if (searchTerm === "" || tableNameMatch || filteredColumns.length > 0) {
+            // If table name doesn't match, but columns do, show only matching columns
+            return {
+                ...table,
+                columns: tableNameMatch ? table.columns : filteredColumns,
+                showAllColumns: tableNameMatch
+            };
+        }
+        return null;
+    }).filter(Boolean);
+
+    if (filteredTables.length === 0) {
+        tablesContent.innerHTML = '<p>No tables or columns match your search.</p>';
         return;
     }
-    
-    let html = `<h3>Tables Overview (${tables.length} total)</h3>`;
-    
-    tables.forEach((table, index) => {
+
+    let html = `<h3>Tables Overview (${filteredTables.length} shown${searchTerm ? " - filtered" : ""})</h3>`;
+
+    filteredTables.forEach((table, index) => {
+        const tableNameHtml = highlightMatch(table.name, searchTerm);
         html += `
             <div class="expandable" id="table-${index}">
                 <div class="expandable-header" onclick="toggleExpandable('table-${index}')">
-                    <h4>${table.name} (${table.columns_count} columns, ${table.measures_count} measures)</h4>
+                    <h4>${tableNameHtml} (${table.columns_count} columns, ${table.measures_count} measures)</h4>
                     <span class="expandable-toggle">▼</span>
                 </div>
                 <div class="expandable-content">
@@ -296,7 +327,7 @@ function displayTablesTab() {
                             <tbody>
                                 ${table.columns.map(col => `
                                     <tr>
-                                        <td>${col.name}</td>
+                                        <td>${highlightMatch(col.name, searchTerm)}</td>
                                         <td>${col.dataType}</td>
                                         <td>${col.isHidden ? 'Yes' : 'No'}</td>
                                         <td>${col.isKey ? 'Yes' : 'No'}</td>
@@ -304,7 +335,7 @@ function displayTablesTab() {
                                 `).join('')}
                             </tbody>
                         </table>
-                    ` : ''}
+                    ` : (searchTerm && !table.showAllColumns ? '<p>No columns match your search.</p>' : '')}
                     
                     ${table.measures && table.measures.length > 0 ? `
                         <h5>Measures</h5>
@@ -332,9 +363,19 @@ function displayTablesTab() {
             </div>
         `;
     });
-    
+
     tablesContent.innerHTML = html;
 }
+
+// Add search event listener for tables search input
+document.addEventListener('DOMContentLoaded', function() {
+    const tablesSearchInput = document.getElementById('tables-search-input');
+    if (tablesSearchInput) {
+        tablesSearchInput.addEventListener('input', function(e) {
+            displayTablesTab(e.target.value);
+        });
+    }
+});
 
 function displayRelationshipsTab() {
     const relationships = currentAnalysisData.model_info.relationships || [];
