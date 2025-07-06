@@ -20,9 +20,15 @@ const newAnalysisBtn = document.getElementById('new-analysis-btn');
 const retryBtn = document.getElementById('retry-btn');
 const summaryGrid = document.getElementById('summary-grid');
 
-// Initialize the application
+ // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
     initializeEventListeners();
+    // Restore analysis if present in localStorage
+    const savedAnalysisId = localStorage.getItem('analysisId');
+    if (savedAnalysisId) {
+        currentAnalysisId = savedAnalysisId;
+        loadAnalysisResults();
+    }
 });
 
 function initializeEventListeners() {
@@ -112,7 +118,9 @@ async function uploadFile(file) {
         const result = await response.json();
         console.log('Upload successful:', result);
         currentAnalysisId = result.analysis_id;
-        
+        // Save analysisId to localStorage for persistence
+        localStorage.setItem('analysisId', currentAnalysisId);
+
         // Load analysis results
         await loadAnalysisResults();
         
@@ -528,6 +536,8 @@ function resetToUpload() {
     currentAnalysisData = null;
     fileInput.value = '';
     progressFill.style.width = '0%';
+    // Remove persisted analysisId from localStorage
+    localStorage.removeItem('analysisId');
     
     hideAllSections();
     uploadSection.style.display = 'block';
