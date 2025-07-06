@@ -5,10 +5,11 @@ A web application that helps Power BI developers analyze their model.json files 
 ## Features
 
 - **File Upload**: Drag-and-drop or browse to upload Power BI model.json files
+- **Persistent Analysis**: Uploaded model analysis persists across browser refreshes—no need to re-upload.
 - **Comprehensive Analysis**: Analyzes all aspects of the Power BI model including:
-  - Model metadata (compatibility level, culture settings)
-  - Tables with columns and measures details
-  - Relationships between tables
+  - Model metadata (compatibility level, culture settings, Power BI Desktop version, Time Intelligence status)
+  - Tables with columns and measures details, with search and highlight functionality
+  - Relationships between tables, with user-selectable grouping by "From" or "To" table
   - DAX expressions
   - Security roles and permissions
   - Raw JSON data viewer
@@ -103,12 +104,12 @@ The frontend will be available at `http://localhost:3000` (or the port you speci
    - Supported file types: JSON files up to 50MB
 
 4. **Analyze Results**: Once uploaded, the application will display:
-   - **Overview**: Summary cards and basic model information
-   - **Tables**: Detailed table structure with columns and measures
-   - **Relationships**: Model relationships and their properties
-   - **Expressions**: DAX expressions and calculated columns
-   - **Roles**: Security roles and table permissions
-   - **Raw Data**: Complete JSON structure for advanced users
+   - **Overview**: Summary cards and basic model information, including compatibility level, culture, Power BI Desktop version, and Time Intelligence status.
+   - **Tables**: Detailed table structure with columns and measures. Includes a search bar to filter tables or columns by name, with matching results highlighted.
+   - **Relationships**: Model relationships and their properties. Relationships are grouped by table, and you can choose to group by "From Table" or "To Table" using a dropdown selector.
+   - **Expressions**: DAX expressions and calculated columns.
+   - **Roles**: Security roles and table permissions.
+   - **Raw Data**: Complete JSON structure for advanced users.
 
 ## API Endpoints
 
@@ -169,6 +170,14 @@ The backend provides the following REST API endpoints:
 3. Make your changes
 4. Test thoroughly
 5. Submit a pull request
+
+## Recent Changes
+
+- Added persistent analysis: uploaded model remains available after browser refresh.
+- Tables tab: added search and highlight for tables and columns.
+- Relationships tab: relationships can be grouped by "From Table" or "To Table" via a dropdown selector.
+- Removed deprecated "Model Settings" section from the overview.
+- Improved UI/UX for search bar and relationships display.
 
 ## License
 
