@@ -235,13 +235,6 @@ function displayOverviewTab() {
                 <p>Source Query Culture: <span class="value">${modelInfo.sourceQueryCulture || 'N/A'}</span></p>
             </div>
             <div class="info-card">
-                <h4>Model Settings</h4>
-                <p>Data Access Mode: <span class="value">${modelInfo.dataAccessOptions?.defaultMode || 'N/A'}</span></p>
-                <p>Query Groups: <span class="value">${summary.query_groups_count || 0}</span></p>
-                <p>Annotations: <span class="value">${summary.annotations_count || 0}</span></p>
-                <p>Cultures: <span class="value">${summary.cultures_count || 0}</span></p>
-            </div>
-            <div class="info-card">
                 <h4>Model Components</h4>
                 <p>Tables: <span class="value">${summary.tables_count || 0}</span></p>
                 <p>Relationships: <span class="value">${summary.relationships_count || 0}</span></p>
