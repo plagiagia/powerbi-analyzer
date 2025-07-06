@@ -390,6 +390,8 @@ function displayTablesTab(filter = "") {
 /**
  * Display all measures from all tables in a searchable, expandable list.
  */
+let measuresSortState = window.measuresSortState || { column: "table", direction: "asc" };
+
 function displayMeasuresTab(filter = "") {
     const tables = currentAnalysisData.model_info.tables || [];
     const measuresContent = document.getElementById('measures-content');
@@ -431,6 +433,19 @@ function displayMeasuresTab(filter = "") {
         return null;
     }).filter(Boolean);
 
+    // Sorting logic
+    if (measuresSortState && measuresSortState.column) {
+        filteredMeasures.sort((a, b) => {
+            let valA = a[measuresSortState.column] || "";
+            let valB = b[measuresSortState.column] || "";
+            valA = typeof valA === "string" ? valA.toLowerCase() : valA;
+            valB = typeof valB === "string" ? valB.toLowerCase() : valB;
+            if (valA < valB) return measuresSortState.direction === "asc" ? -1 : 1;
+            if (valA > valB) return measuresSortState.direction === "asc" ? 1 : -1;
+            return 0;
+        });
+    }
+
     if (filteredMeasures.length === 0) {
         measuresContent.innerHTML = '<p>No measures found matching your search.</p>';
         return;
@@ -440,10 +455,11 @@ function displayMeasuresTab(filter = "") {
     html += `<table class="data-table">
         <thead>
             <tr>
+                <th id="measures-table-header" style="cursor:pointer;">Table ${measuresSortState.column === "table" ? (measuresSortState.direction === "asc" ? "▲" : "▼") : ""}</th>
                 <th>Name</th>
-                <th>Table</th>
                 <th>Hidden</th>
                 <th>DAX Expression</th>
+                <th>Referenced By</th>
             </tr>
         </thead>
         <tbody>
@@ -455,10 +471,14 @@ function displayMeasuresTab(filter = "") {
         const truncated = expr.length > 100 ? expr.substring(0, 100) + "..." : expr;
         const isExpandable = expr.length > 100;
         const exprId = `measure-expr-${m.idx}`;
+        // Prepare Referenced By lineage
+        let referencedBy = Array.isArray(m.referencedBy) && m.referencedBy.length > 0
+            ? m.referencedBy.join(", ")
+            : "—";
         html += `
             <tr>
-                <td>${highlightMatch(m.name, searchTerm)}</td>
                 <td>${highlightMatch(m.table, searchTerm)}</td>
+                <td>${highlightMatch(m.name, searchTerm)}</td>
                 <td>${m.isHidden ? 'Yes' : 'No'}</td>
                 <td>
                     <div class="measure-expression">
@@ -467,6 +487,7 @@ function displayMeasuresTab(filter = "") {
                         <code id="${exprId}-full" style="display:none;">${highlightMatch(expr, searchTerm)}</code>
                     </div>
                 </td>
+                <td>${referencedBy}</td>
             </tr>
         `;
     });
@@ -493,6 +514,21 @@ function displayMeasuresTab(filter = "") {
             }
         });
     });
+
+    // Add sorting event listener for Table column
+    const tableHeader = document.getElementById('measures-table-header');
+    if (tableHeader) {
+        tableHeader.onclick = function() {
+            if (measuresSortState.column === "table") {
+                measuresSortState.direction = measuresSortState.direction === "asc" ? "desc" : "asc";
+            } else {
+                measuresSortState.column = "table";
+                measuresSortState.direction = "asc";
+            }
+            window.measuresSortState = measuresSortState;
+            displayMeasuresTab(searchTerm);
+        };
+    }
 }
 
 // Add search event listener for tables search input

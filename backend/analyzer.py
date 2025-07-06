@@ -83,8 +83,66 @@ class PowerBIAnalyzer:
             raise ValueError(f"Error analyzing model: {str(e)}")
     
     def _analyze_tables(self, tables: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Analyze tables and extract key information"""
+        """Analyze tables and extract key information, including measure lineage"""
         analyzed_tables = []
+
+        # Step 1: Collect all measures across all tables
+        all_measures = []
+        for table in tables:
+            for measure in table.get("measures", []):
+                all_measures.append({
+                    "table": table.get("name", "Unknown"),
+                    "name": measure.get("name", "Unknown"),
+                    "expression": measure.get("expression", ""),
+                })
+
+        # Step 2: Build a mapping of measure name (with table) to its expression
+        measure_fullnames = []
+        name_to_fullnames = {}  # name (case-insensitive) -> list of Table[Measure]
+        for m in all_measures:
+            fullname = f"{m['table']}[{m['name']}]"
+            measure_fullnames.append(fullname)
+            key = m['name'].strip().lower()
+            if key not in name_to_fullnames:
+                name_to_fullnames[key] = []
+            name_to_fullnames[key].append(fullname)
+
+        # Step 3: For each measure, find which other measures it references
+        import re
+        measure_references = {}  # fullname -> set of referenced fullnames
+        for m in all_measures:
+            fullname = f"{m['table']}[{m['name']}]"
+            expr = m["expression"]
+            if isinstance(expr, list):
+                expr = "\n".join(str(line) for line in expr)
+            elif expr is None:
+                expr = ""
+            refs = set()
+            for candidate in measure_fullnames:
+                if candidate == fullname:
+                    continue
+                table, name = candidate.split("[", 1)
+                name = name.rstrip("]")
+                # Table[Measure]
+                if re.search(rf"\b{re.escape(table)}\[{re.escape(name)}\]", expr, re.IGNORECASE):
+                    refs.add(candidate)
+            # Now handle unqualified [Measure] references
+            # Find all [SomeName] in the expression
+            unqualified_refs = set(re.findall(r"\[([^\[\]]+)\]", expr))
+            for ref_name in unqualified_refs:
+                key = ref_name.strip().lower()
+                if key in name_to_fullnames and len(name_to_fullnames[key]) == 1:
+                    # Only one measure with this name, safe to link
+                    refs.add(name_to_fullnames[key][0])
+            measure_references[fullname] = refs
+
+        # Step 4: Build reverse mapping: for each measure, who references it
+        referenced_by = {fullname: set() for fullname in measure_fullnames}
+        for src, targets in measure_references.items():
+            for tgt in targets:
+                referenced_by[tgt].add(src)
+
+        # Step 5: Build analyzed_tables with lineage info
         for table in tables:
             table_info = {
                 "name": table.get("name", "Unknown"),
@@ -93,7 +151,7 @@ class PowerBIAnalyzer:
                 "partitions_count": len(table.get("partitions", [])),
                 "hierarchies_count": len(table.get("hierarchies", [])),
             }
-            
+
             # Add column details if available
             if "columns" in table:
                 table_info["columns"] = [
@@ -105,20 +163,34 @@ class PowerBIAnalyzer:
                     }
                     for col in table["columns"]
                 ]
-            
-            # Add measure details if available
+
+            # Add measure details with lineage info
             if "measures" in table:
-                table_info["measures"] = [
-                    {
-                        "name": measure.get("name", "Unknown"),
+                table_measures = []
+                for measure in table["measures"]:
+                    m_name = measure.get("name", "Unknown")
+                    fullname = f"{table.get('name', 'Unknown')}[{m_name}]"
+                    refs = sorted(list(measure_references.get(fullname, set())))
+                    refd_by = sorted(list(referenced_by.get(fullname, set())))
+                    # For debugging: show joined expression and all candidate names
+                    expr_val = measure.get("expression", "")
+                    if isinstance(expr_val, list):
+                        expr_debug = "\n".join(str(line) for line in expr_val)
+                    else:
+                        expr_debug = str(expr_val)
+                    table_measures.append({
+                        "name": m_name,
                         "expression": measure.get("expression", ""),
-                        "isHidden": measure.get("isHidden", False)
-                    }
-                    for measure in table["measures"]
-                ]
-            
+                        "isHidden": measure.get("isHidden", False),
+                        "references": refs,        # List of Table[Measure] this measure references
+                        "referencedBy": refd_by,   # List of Table[Measure] that reference this measure
+                        "_debug_expression": expr_debug,
+                        "_debug_candidates": measure_fullnames
+                    })
+                table_info["measures"] = table_measures
+
             analyzed_tables.append(table_info)
-        
+
         return analyzed_tables
     
     def _analyze_relationships(self, relationships: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
