@@ -720,6 +720,299 @@ function switchTab(tabName) {
         const measuresSearchInput = document.getElementById('measures-search-input');
         displayMeasuresTab(measuresSearchInput ? measuresSearchInput.value : "");
     }
+
+    // If switching to lineage tab, render the graph directly
+    if (tabName === "lineage") {
+        renderLineageGraph();
+    }
+}
+
+// Render the enhanced Dependency Graph with reference path highlighting
+function renderLineageGraph() {
+    const el = document.getElementById('lineage-graph-content');
+    const pathsEl = document.getElementById('lineage-paths-content');
+    if (!currentAnalysisData || !currentAnalysisData.model_info || !Array.isArray(currentAnalysisData.model_info.tables)) {
+        el.innerHTML = '<p>No analysis data loaded.</p>';
+        if (pathsEl) pathsEl.innerHTML = '';
+        return;
+    }
+
+    // Build nodes and edges from measures and their references
+    const tables = currentAnalysisData.model_info.tables;
+    let allMeasures = [];
+    let referencesMap = {};
+    tables.forEach(table => {
+        if (Array.isArray(table.measures)) {
+            table.measures.forEach(measure => {
+                const fullname = `${table.name || "Unknown"}[${measure.name}]`;
+                allMeasures.push({
+                    ...measure,
+                    table: table.name || "Unknown",
+                    fullname
+                });
+                referencesMap[fullname] = Array.isArray(measure.references) ? measure.references : [];
+            });
+        }
+    });
+
+    // Create nodes: id = Table[Measure], label = Table[Measure]
+    const nodes = allMeasures.map(m => ({
+        id: m.fullname,
+        label: m.fullname,
+        title: m.expression ? `<pre>${m.expression}</pre>` : "",
+        shape: "box",
+        color: m.isHidden ? "#f5f5f5" : "#e3f2fd",
+        font: { face: "Fira Mono, monospace", size: 15, color: "#222" },
+        borderWidth: 2
+    }));
+
+    // Create edges: from = source, to = referenced measure
+    let edges = [];
+    allMeasures.forEach(m => {
+        if (Array.isArray(m.references)) {
+            m.references.forEach(ref => {
+                edges.push({
+                    from: m.fullname,
+                    to: ref,
+                    arrows: "to",
+                    color: { color: "#90caf9", highlight: "#1976d2", hover: "#1976d2" },
+                    width: 2
+                });
+            });
+        }
+    });
+
+    // Clear previous content and add a container for the network
+    el.innerHTML = '<div id="lineage-graph-network" style="width:100%;height:520px;border-radius:12px;border:1.5px solid #b3c6e0;background:linear-gradient(120deg,#f8fafc 60%,#e3f2fd 100%);box-shadow:0 2px 12px #e3f2fd;"></div>';
+    const container = document.getElementById('lineage-graph-network');
+
+    // Destroy previous network if any
+    if (window.lineageGraphNetwork) {
+        window.lineageGraphNetwork.destroy();
+        window.lineageGraphNetwork = null;
+    }
+
+    // Create the network
+    const data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
+    const options = {
+        layout: { improvedLayout: true, hierarchical: false },
+        nodes: {
+            shape: "box",
+            font: { face: "Fira Mono, monospace", size: 15, color: "#222" },
+            color: { background: "#e3f2fd", border: "#1976d2", highlight: { background: "#fffde7", border: "#fbc02d" } },
+            borderWidth: 2,
+            borderWidthSelected: 4,
+            shadow: true
+        },
+        edges: {
+            arrows: "to",
+            color: { color: "#90caf9", highlight: "#1976d2", hover: "#1976d2" },
+            width: 2,
+            smooth: { type: "cubicBezier", forceDirection: "horizontal", roundness: 0.4 }
+        },
+        physics: {
+            enabled: true,
+            barnesHut: { gravitationalConstant: -30000, springLength: 120 }
+        },
+        interaction: {
+            hover: true,
+            tooltipDelay: 200,
+            navigationButtons: true,
+            multiselect: false
+        }
+    };
+    const network = new vis.Network(container, data, options);
+    window.lineageGraphNetwork = network;
+
+    // Helper: Find all root measures (not referenced by any other measure)
+    const allFullnames = allMeasures.map(m => m.fullname);
+    const referenced = new Set();
+    allFullnames.forEach(f => {
+        (referencesMap[f] || []).forEach(ref => referenced.add(ref));
+    });
+    const roots = allFullnames.filter(f => !referenced.has(f));
+
+    // Helper: Find all reference paths from any root to the selected measure (DFS, all paths)
+    function findPaths(current, target, path, visited, allPaths) {
+        if (visited.has(current)) return; // avoid cycles
+        path.push(current);
+        visited.add(current);
+        if (current === target) {
+            allPaths.push([...path]);
+        } else {
+            (referencesMap[current] || []).forEach(ref => {
+                findPaths(ref, target, path, visited, allPaths);
+            });
+        }
+        path.pop();
+        visited.delete(current);
+    }
+
+    // Click handler: highlight reference paths and show involved measures
+    network.on("selectNode", function(params) {
+        const selected = params.nodes[0];
+        let allPaths = [];
+        roots.forEach(root => {
+            findPaths(root, selected, [], new Set(), allPaths);
+        });
+
+        // Highlight nodes and edges in the path(s)
+        const involvedNodes = new Set();
+        const involvedEdges = new Set();
+        allPaths.forEach(path => {
+            for (let i = 0; i < path.length; i++) {
+                involvedNodes.add(path[i]);
+                if (i > 0) {
+                    involvedEdges.add(`${path[i-1]}->${path[i]}`);
+                }
+            }
+        });
+
+        // Update node and edge styles
+        data.nodes.forEach(node => {
+            data.nodes.update({
+                id: node.id,
+                color: involvedNodes.has(node.id)
+                    ? { background: "#fffde7", border: "#fbc02d", highlight: { background: "#fffde7", border: "#fbc02d" } }
+                    : { background: "#e3f2fd", border: "#1976d2", highlight: { background: "#fffde7", border: "#fbc02d" } }
+            });
+        });
+        data.edges.forEach(edge => {
+            const key = `${edge.from}->${edge.to}`;
+            data.edges.update({
+                id: edge.id,
+                color: involvedEdges.has(key)
+                    ? { color: "#fbc02d", highlight: "#fbc02d", hover: "#fbc02d" }
+                    : { color: "#90caf9", highlight: "#1976d2", hover: "#1976d2" },
+                width: involvedEdges.has(key) ? 4 : 2
+            });
+        });
+
+        // Show involved measures below the graph
+        if (pathsEl) {
+            if (allPaths.length === 0) {
+                pathsEl.innerHTML = `<div class="info-card" style="background:#fffde7;border:1.5px solid #fbc02d;"><b>No reference paths found from root measures to <span class="mono">${selected}</span>.</b></div>`;
+            } else {
+                const uniqueMeasures = Array.from(involvedNodes);
+                pathsEl.innerHTML = `
+                    <div class="info-card" style="background:#fffde7;border:1.5px solid #fbc02d;">
+                        <b>Reference Paths to <span class="mono">${selected}</span></b><br>
+                        <span style="font-size:13px;">${allPaths.length} path(s) found. Involved measures:</span>
+                        <ul class="mono" style="margin:8px 0 0 0;padding-left:18px;">
+                            ${uniqueMeasures.map(m => `<li>${m}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+        }
+    });
+
+    // Reset highlights and info when clicking background
+    network.on("deselectNode", function() {
+        data.nodes.forEach(node => {
+            data.nodes.update({
+                id: node.id,
+                color: { background: "#e3f2fd", border: "#1976d2", highlight: { background: "#fffde7", border: "#fbc02d" } }
+            });
+        });
+        data.edges.forEach(edge => {
+            data.edges.update({
+                id: edge.id,
+                color: { color: "#90caf9", highlight: "#1976d2", hover: "#1976d2" },
+                width: 2
+            });
+        });
+        if (pathsEl) pathsEl.innerHTML = '';
+    });
+}
+
+
+function renderLineagePaths() {
+    const el = document.getElementById('lineage-paths-content');
+    const select = document.getElementById('paths-measure-select');
+    if (!currentAnalysisData || !currentAnalysisData.model_info || !Array.isArray(currentAnalysisData.model_info.tables)) {
+        el.innerHTML = '<p>No analysis data loaded.</p>';
+        select.innerHTML = '';
+        return;
+    }
+
+    // Build allMeasures and references map
+    const tables = currentAnalysisData.model_info.tables;
+    let allMeasures = [];
+    let referencesMap = {};
+    tables.forEach(table => {
+        if (Array.isArray(table.measures)) {
+            table.measures.forEach(measure => {
+                const fullname = `${table.name || "Unknown"}[${measure.name}]`;
+                allMeasures.push({
+                    ...measure,
+                    table: table.name || "Unknown",
+                    fullname
+                });
+                referencesMap[fullname] = Array.isArray(measure.references) ? measure.references : [];
+            });
+        }
+    });
+
+    // Populate dropdown
+    if (select.options.length === 0 || select.options.length !== allMeasures.length) {
+        select.innerHTML = '';
+        allMeasures.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m.fullname;
+            opt.textContent = m.fullname;
+            select.appendChild(opt);
+        });
+    }
+
+    // Get selected measure
+    const selected = select.value || (allMeasures[0] && allMeasures[0].fullname);
+    select.value = selected;
+
+    // Find all root measures (not referenced by any other measure)
+    const allFullnames = allMeasures.map(m => m.fullname);
+    const referenced = new Set();
+    allFullnames.forEach(f => {
+        (referencesMap[f] || []).forEach(ref => referenced.add(ref));
+    });
+    const roots = allFullnames.filter(f => !referenced.has(f));
+
+    // Find all reference paths from any root to the selected measure (DFS, all paths)
+    function findPaths(current, target, path, visited, allPaths) {
+        if (visited.has(current)) return; // avoid cycles
+        path.push(current);
+        visited.add(current);
+        if (current === target) {
+            allPaths.push([...path]);
+        } else {
+            (referencesMap[current] || []).forEach(ref => {
+                findPaths(ref, target, path, visited, allPaths);
+            });
+        }
+        path.pop();
+        visited.delete(current);
+    }
+
+    let allPaths = [];
+    roots.forEach(root => {
+        findPaths(root, selected, [], new Set(), allPaths);
+    });
+
+    // Render results
+    el.innerHTML = `
+        <h4>Reference Paths to <span class="mono">${selected}</span></h4>
+        <p>${allPaths.length === 0 ? "No reference paths found from root measures to this measure." : `Found ${allPaths.length} path(s) from root measures to <b>${selected}</b>:`}</p>
+        ${allPaths.length > 0 ? `
+            <ol class="mono" style="font-size:13px;">
+                ${allPaths.map(path => `<li>${path.join(" &rarr; ")}</li>`).join('')}
+            </ol>
+        ` : ''}
+    `;
+
+    // Add event listener for dropdown
+    select.onchange = function() {
+        renderLineagePaths();
+    };
 }
 
 function toggleExpandable(id) {

@@ -50,28 +50,29 @@
 
                 <!-- Detailed Results -->
                 <div class="results-tabs">
-                    <div class="tab-buttons">
-                        <button class="tab-btn active" data-tab="overview">Overview</button>
-                        <button class="tab-btn" data-tab="tables">Tables</button>
-                        <button class="tab-btn" data-tab="measures">Measures</button>
-                        <button class="tab-btn" data-tab="relationships">Relationships</button>
-                        <button class="tab-btn" data-tab="expressions">Expressions</button>
-                        <button class="tab-btn" data-tab="roles">Roles</button>
-                        <button class="tab-btn" data-tab="raw">Raw Data</button>
-                    </div>
+<div class="tab-buttons">
+    <button class="tab-btn active" data-tab="overview">Overview</button>
+    <button class="tab-btn" data-tab="tables">Tables</button>
+    <button class="tab-btn" data-tab="measures">Measures</button>
+    <button class="tab-btn" data-tab="relationships">Relationships</button>
+    <button class="tab-btn" data-tab="expressions">Expressions</button>
+    <button class="tab-btn" data-tab="roles">Roles</button>
+    <button class="tab-btn" data-tab="raw">Raw Data</button>
+    <button class="tab-btn" data-tab="lineage">Lineage</button>
+</div>
 
-                    <div class="tab-content">
-                        <div id="overview-tab" class="tab-panel active">
-                            <div id="overview-content"></div>
-                        </div>
-                        
+<div class="tab-content">
+    <div id="overview-tab" class="tab-panel active">
+        <div id="overview-content"></div>
+    </div>
+    
 <div id="tables-tab" class="tab-panel">
     <div class="search-bar">
         <input type="text" id="tables-search-input" placeholder="Search tables or columns..." autocomplete="off">
     </div>
     <div id="tables-content"></div>
 </div>
-                        
+    
 <div id="relationships-tab" class="tab-panel">
     <div class="relationship-grouping-bar" style="margin-bottom: 16px;">
         <label for="relationship-grouping-select" style="font-weight: 500; margin-right: 8px;">Group by:</label>
@@ -82,26 +83,39 @@
     </div>
     <div id="relationships-content"></div>
 </div>
-                        
-                        <div id="measures-tab" class="tab-panel">
-                            <div class="search-bar">
-                                <input type="text" id="measures-search-input" placeholder="Search measures..." autocomplete="off">
-                            </div>
-                            <div id="measures-content"></div>
-                        </div>
+    
+    <div id="measures-tab" class="tab-panel">
+        <div class="search-bar">
+            <input type="text" id="measures-search-input" placeholder="Search measures..." autocomplete="off">
+        </div>
+        <div id="measures-content"></div>
+    </div>
 
-                        <div id="expressions-tab" class="tab-panel">
-                            <div id="expressions-content"></div>
-                        </div>
-                        
-                        <div id="roles-tab" class="tab-panel">
-                            <div id="roles-content"></div>
-                        </div>
-                        
-                        <div id="raw-tab" class="tab-panel">
-                            <div id="raw-content"></div>
-                        </div>
-                    </div>
+    <div id="expressions-tab" class="tab-panel">
+        <div id="expressions-content"></div>
+    </div>
+    
+    <div id="roles-tab" class="tab-panel">
+        <div id="roles-content"></div>
+    </div>
+    
+    <div id="raw-tab" class="tab-panel">
+        <div id="raw-content"></div>
+    </div>
+
+    <!-- Lineage Tab -->
+    <div id="lineage-tab" class="tab-panel">
+        <div class="lineage-subnav">
+            <button class="lineage-btn active" data-lineage="graph">Dependency Graph</button>
+        </div>
+        <div class="lineage-content">
+            <div id="lineage-graph-section" class="lineage-section active">
+                <div id="lineage-graph-content"></div>
+                <div id="lineage-paths-content" style="margin-top:24px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
                 </div>
             </section>
 
@@ -117,6 +131,9 @@
         </main>
     </div>
 
+    <!-- vis.js for graph visualization -->
+    <script type="text/javascript" src="https://unpkg.com/vis-network@9.1.2/dist/vis-network.min.js"></script>
+    <link href="https://unpkg.com/vis-network@9.1.2/dist/vis-network.min.css" rel="stylesheet" type="text/css" />
     <script src="script.js"></script>
 </body>
 </html>
